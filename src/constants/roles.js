@@ -1,4 +1,5 @@
 exports.ROLES = {
-  USER: "user",
-  ADMIN: "admin"
+  SUPER_ADMIN: "super_admin",
+  ADMIN: "admin",
+  USER: "user"
 };
