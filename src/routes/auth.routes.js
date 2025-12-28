@@ -30,10 +30,9 @@ router.post(
 // REFRESH
 router.post(
   "/refresh",
-  createRateLimiter({ max: 10 }),
-  validate(refreshSchema),
   controller.refresh
 );
+
 
 // LOGOUT
 router.post(
@@ -48,7 +47,13 @@ router.post(
 router.get(
   "/me",
   authenticate,
+  (req, res, next) => {
+    res.set("Cache-Control", "no-store");
+    next();
+  },
   controller.me
 );
+
+
 
 module.exports = router;

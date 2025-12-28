@@ -12,10 +12,17 @@ const csrfProtection = csrf({
 });
 
 /**
- * Skip CSRF for preflight requests
+ * CSRF middleware
+ * - Skips OPTIONS (preflight)
+ * - Skips refresh-token endpoint
  */
 const csrfMiddleware = (req, res, next) => {
+  // Skip preflight
   if (req.method === "OPTIONS") return next();
+
+  // 🚫 Skip CSRF for refresh token endpoint
+  if (req.path === "/api/auth/refresh") return next();
+
   return csrfProtection(req, res, next);
 };
 
