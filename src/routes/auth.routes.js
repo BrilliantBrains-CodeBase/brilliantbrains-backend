@@ -12,6 +12,13 @@ const {
   logoutSchema
 } = require("../validators/auth.validator");
 
+// 🔐 CSRF token endpoint
+router.get("/csrf-token", (req, res) => {
+  res.json({
+    csrfToken: req.csrfToken(),
+  });
+});
+
 // LOGIN
 router.post(
   "/login",
