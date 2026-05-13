@@ -132,3 +132,72 @@ exports.me = async (req, res, next) => {
   }
 };
 
+/**
+ * @route   PATCH /api/auth/profile
+ * @desc    Update user profile details
+ * @access  Authenticated
+ */
+exports.updateProfile = async (req, res, next) => {
+  try {
+    const { name, email } = req.body;
+    const userId = req.user._id;
+
+    // Check if email is already taken by another user
+    if (email) {
+      const existingUser = await User.findOne({ email, _id: { $ne: userId } });
+      if (existingUser) {
+        throw new ApiError(400, "Email is already in use");
+      }
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: { name, email } },
+      { new: true, runValidators: true }
+    );
+
+    return res.status(200).json(
+      new ApiResponse(200, {
+        id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+      }, "Profile updated successfully")
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @route   PATCH /api/auth/password
+ * @desc    Change user password
+ * @access  Authenticated
+ */
+exports.updatePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user._id;
+
+    // 1️⃣ Find user with password
+    const user = await User.findById(userId).select("+password");
+
+    // 2️⃣ Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      throw new ApiError(400, "Incorrect current password");
+    }
+
+    // 3️⃣ Hash and update new password
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    user.password = hashedPassword;
+    await user.save();
+
+    return res.status(200).json(
+      new ApiResponse(200, null, "Password changed successfully")
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+

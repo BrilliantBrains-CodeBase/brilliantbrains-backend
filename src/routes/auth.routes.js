@@ -54,6 +54,22 @@ router.get(
   controller.me
 );
 
+// UPDATE PROFILE
+router.patch(
+  "/profile",
+  authenticate,
+  csrfProtection,
+  controller.updateProfile
+);
+
+// CHANGE PASSWORD
+router.patch(
+  "/password",
+  authenticate,
+  csrfProtection,
+  controller.updatePassword
+);
+
 
 
 module.exports = router;

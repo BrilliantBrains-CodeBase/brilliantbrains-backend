@@ -33,8 +33,23 @@ const schema = new mongoose.Schema(
       default: true
     },
 
+    phoneNumber: {
+      type: String,
+      trim: true
+    },
+
+    profileImage: {
+      type: String,
+      default: null
+    },
+
     lastLoginAt: {
       type: Date
+    },
+
+    lastActiveAt: {
+      type: Date,
+      default: Date.now
     }
   },
   {

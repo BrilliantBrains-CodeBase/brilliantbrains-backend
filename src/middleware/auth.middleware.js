@@ -23,3 +23,16 @@ exports.authenticate = async (req, _res, next) => {
     next(error);
   }
 };
+
+/**
+ * 🔐 Authorize roles
+ * @param  {...string} roles - allowed roles
+ */
+exports.authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return next(new ApiError(403, "Access denied: insufficient permissions"));
+    }
+    next();
+  };
+};
