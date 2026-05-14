@@ -43,8 +43,10 @@ exports.login = async (req, res, next) => {
         200,
         {
           id: user._id,
+          name: user.name,
           email: user.email,
           role: user.role,
+          profileImage: user.profileImage,
         },
         "Login successful"
       )
@@ -121,8 +123,10 @@ exports.me = async (req, res, next) => {
         200,
         {
           id: req.user._id,
+          name: req.user.name,
           email: req.user.email,
           role: req.user.role,
+          profileImage: req.user.profileImage,
         },
         "User fetched successfully"
       )
@@ -139,7 +143,7 @@ exports.me = async (req, res, next) => {
  */
 exports.updateProfile = async (req, res, next) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, profileImage } = req.body;
     const userId = req.user._id;
 
     // Check if email is already taken by another user
@@ -152,7 +156,7 @@ exports.updateProfile = async (req, res, next) => {
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { $set: { name, email } },
+      { $set: { name, email, profileImage } },
       { new: true, runValidators: true }
     );
 
@@ -162,6 +166,7 @@ exports.updateProfile = async (req, res, next) => {
         name: updatedUser.name,
         email: updatedUser.email,
         role: updatedUser.role,
+        profileImage: updatedUser.profileImage,
       }, "Profile updated successfully")
     );
   } catch (error) {
