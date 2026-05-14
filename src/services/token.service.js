@@ -59,6 +59,6 @@ exports.setAuthCookies = (res, payload) => {
  * Used during logout
  */
 exports.clearAuthCookies = (res) => {
-  res.clearCookie("accessToken");
-  res.clearCookie("refreshToken");
+  res.clearCookie("accessToken", baseCookieOptions);
+  res.clearCookie("refreshToken", baseCookieOptions);
 };
