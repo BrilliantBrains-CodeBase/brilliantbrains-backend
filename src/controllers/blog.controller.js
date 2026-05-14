@@ -1,68 +1,53 @@
 const Blog = require("../models/Blog.model");
-const Category = require("../models/Category.model");
-const Tag = require("../models/Tag.model");
 const BlogRevision = require("../models/BlogRevision.model");
-const { ApiResponse } = require("../utils/ApiResponse");
-const { ApiError } = require("../utils/ApiError");
-const mongoose = require("mongoose");
+const ApiResponse = require("../utils/ApiResponse");
+const ApiError = require("../utils/ApiError");
 
-// Utility to calculate reading time
-const calculateReadTime = (blocks) => {
-  if (!blocks || !Array.isArray(blocks)) return 1;
-  let wordCount = 0;
-  blocks.forEach((block) => {
-    if (["paragraph", "heading", "list", "quote", "alert"].includes(block.type)) {
-      if (typeof block.data?.text === "string") {
-        wordCount += block.data.text.split(/\s+/).length;
-      }
-      if (Array.isArray(block.data?.items)) {
-        block.data.items.forEach((item) => {
-          if (typeof item === "string") wordCount += item.split(/\s+/).length;
-        });
-      }
-    }
-  });
-  return Math.ceil(wordCount / 225) || 1; // 225 words per minute average
+const calculateReadTime = (htmlContent) => {
+  if (!htmlContent) return 1;
+  const text = htmlContent.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const wordCount = text.split(" ").filter(Boolean).length;
+  return Math.ceil(wordCount / 225) || 1;
 };
 
-// @desc    Get all blogs (Admin & Public)
+// @desc  Get all blogs (public + admin)
 exports.getAllBlogs = async (req, res) => {
-  const { 
-    page = 1, 
-    limit = 10, 
-    status, 
-    category, 
-    author, 
-    tag, 
-    search, 
+  const {
+    page = 1,
+    limit = 10,
+    status,
+    category,
+    author,
+    tag,
+    search,
     featured,
-    sort = "-createdAt" 
+    sort = "-createdAt",
   } = req.query;
 
   const query = {};
-
   if (status) query.status = status;
   if (category) query.category = category;
   if (author) query.author = author;
   if (tag) query.tags = { $in: [tag] };
   if (featured) query.isFeatured = featured === "true";
-  
   if (search) {
     query.$or = [
       { title: { $regex: search, $options: "i" } },
-      { summary: { $regex: search, $options: "i" } }
+      { summary: { $regex: search, $options: "i" } },
     ];
   }
 
-  const blogs = await Blog.find(query)
-    .populate("author", "name email profileImage")
-    .populate("category", "name slug color")
-    .populate("tags", "name slug")
-    .sort(sort)
-    .limit(limit * 1)
-    .skip((page - 1) * limit);
-
-  const total = await Blog.countDocuments(query);
+  const [blogs, total] = await Promise.all([
+    Blog.find(query)
+      .select("-content")
+      .populate("author", "name email profileImage")
+      .populate("category", "name slug color")
+      .populate("tags", "name slug")
+      .sort(sort)
+      .limit(Number(limit))
+      .skip((Number(page) - 1) * Number(limit)),
+    Blog.countDocuments(query),
+  ]);
 
   return res.status(200).json(
     new ApiResponse(200, {
@@ -71,74 +56,75 @@ exports.getAllBlogs = async (req, res) => {
         total,
         page: Number(page),
         limit: Number(limit),
-        totalPages: Math.ceil(total / limit)
-      }
+        totalPages: Math.ceil(total / Number(limit)),
+      },
     }, "Blogs fetched successfully")
   );
 };
 
-// @desc    Get single blog by slug
+// @desc  Get single blog by slug (public)
 exports.getBlogBySlug = async (req, res) => {
-  const { slug } = req.params;
-
-  const blog = await Blog.findOne({ slug, status: "published" })
+  const blog = await Blog.findOne({ slug: req.params.slug, status: "published" })
     .populate("author", "name email profileImage bio socials")
-    .populate("category", "name slug")
+    .populate("category", "name slug color")
     .populate("tags", "name slug");
 
-  if (!blog) {
-    throw new ApiError(404, "Blog not found or not published");
-  }
+  if (!blog) throw new ApiError(404, "Blog not found or not published");
 
   blog.stats.views += 1;
   await blog.save();
 
-  return res.status(200).json(
-    new ApiResponse(200, blog, "Blog fetched successfully")
-  );
+  return res.status(200).json(new ApiResponse(200, blog, "Blog fetched successfully"));
 };
 
-// @desc    Create new blog (Draft)
+// @desc  Get single blog by ID (admin)
+exports.getBlogById = async (req, res) => {
+  const blog = await Blog.findById(req.params.id)
+    .populate("author", "name email profileImage")
+    .populate("category", "name slug color")
+    .populate("tags", "name slug");
+
+  if (!blog) throw new ApiError(404, "Blog not found");
+
+  return res.status(200).json(new ApiResponse(200, blog, "Blog fetched successfully"));
+};
+
+// @desc  Create blog
 exports.createBlog = async (req, res) => {
-  const { title, slug, summary, categoryId } = req.body;
+  const { title, slug, summary, categoryId, status, content, featuredImage, tags, seo } = req.body;
 
-  if (!title || !slug || !categoryId) {
-    throw new ApiError(400, "Title, slug and category are required");
-  }
+  if (!title || !slug) throw new ApiError(400, "Title and slug are required");
 
-  const existingBlog = await Blog.findOne({ slug });
-  if (existingBlog) {
-    throw new ApiError(400, "Slug already exists");
-  }
+  const existing = await Blog.findOne({ slug });
+  if (existing) throw new ApiError(400, "This slug is already in use");
 
   const blog = await Blog.create({
     title,
     slug,
-    summary,
-    category: categoryId,
+    summary: summary || "",
+    category: categoryId || null,
     author: req.user._id,
-    content: { blocks: [] },
-    status: "draft"
+    content: content || "",
+    featuredImage: featuredImage || "",
+    tags: tags || [],
+    status: status || "draft",
+    seo: seo || {},
+    readTime: calculateReadTime(content),
+    publishedAt: status === "published" ? new Date() : null,
   });
 
-  return res.status(201).json(
-    new ApiResponse(201, blog, "Blog draft created successfully")
-  );
+  return res.status(201).json(new ApiResponse(201, blog, "Blog created successfully"));
 };
 
-// @desc    Update blog
+// @desc  Update blog
 exports.updateBlog = async (req, res) => {
-  const { id } = req.params;
-  const updates = req.body;
+  const blog = await Blog.findById(req.params.id);
+  if (!blog) throw new ApiError(404, "Blog not found");
 
-  const blog = await Blog.findById(id);
-  if (!blog) {
-    throw new ApiError(404, "Blog not found");
-  }
+  const updates = { ...req.body };
 
-  if (updates.content?.blocks) {
-    updates.readTime = calculateReadTime(updates.content.blocks);
-    
+  if (updates.content !== undefined) {
+    updates.readTime = calculateReadTime(updates.content);
     await BlogRevision.create({
       blogId: blog._id,
       title: blog.title,
@@ -146,61 +132,51 @@ exports.updateBlog = async (req, res) => {
       summary: blog.summary,
       featuredImage: blog.featuredImage,
       revision: blog.revision,
-      createdBy: req.user._id
+      createdBy: req.user._id,
     });
-    
     updates.revision = blog.revision + 1;
   }
 
-  const updatedBlog = await Blog.findByIdAndUpdate(
-    id,
+  if (updates.status === "published" && !blog.publishedAt) {
+    updates.publishedAt = new Date();
+  }
+  if (updates.status === "draft" || updates.status === "archived") {
+    updates.scheduledAt = null;
+  }
+
+  const updated = await Blog.findByIdAndUpdate(
+    req.params.id,
     { $set: updates },
     { new: true, runValidators: true }
   );
 
-  return res.status(200).json(
-    new ApiResponse(200, updatedBlog, "Blog updated successfully")
-  );
+  return res.status(200).json(new ApiResponse(200, updated, "Blog updated successfully"));
 };
 
-// @desc    Get related blogs
+// @desc  Get related blogs
 exports.getRelatedBlogs = async (req, res) => {
-  const { id } = req.params;
-  const blog = await Blog.findById(id);
-
-  if (!blog) {
-    throw new ApiError(404, "Blog not found");
-  }
+  const blog = await Blog.findById(req.params.id);
+  if (!blog) throw new ApiError(404, "Blog not found");
 
   const related = await Blog.find({
     _id: { $ne: blog._id },
     status: "published",
-    $or: [
-      { category: blog.category },
-      { tags: { $in: blog.tags } }
-    ]
+    $or: [{ category: blog.category }, { tags: { $in: blog.tags } }],
   })
-  .limit(3)
-  .populate("category", "name slug color")
-  .populate("author", "name profileImage");
+    .select("-content")
+    .limit(3)
+    .populate("category", "name slug color")
+    .populate("author", "name profileImage");
 
-  return res.status(200).json(
-    new ApiResponse(200, related, "Related blogs fetched successfully")
-  );
+  return res.status(200).json(new ApiResponse(200, related, "Related blogs fetched"));
 };
 
-// @desc    Delete blog
+// @desc  Delete blog
 exports.deleteBlog = async (req, res) => {
-  const { id } = req.params;
-  const blog = await Blog.findByIdAndDelete(id);
+  const blog = await Blog.findByIdAndDelete(req.params.id);
+  if (!blog) throw new ApiError(404, "Blog not found");
 
-  if (!blog) {
-    throw new ApiError(404, "Blog not found");
-  }
+  await BlogRevision.deleteMany({ blogId: req.params.id });
 
-  await BlogRevision.deleteMany({ blogId: id });
-
-  return res.status(200).json(
-    new ApiResponse(200, null, "Blog and its revisions deleted successfully")
-  );
+  return res.status(200).json(new ApiResponse(200, null, "Blog deleted successfully"));
 };

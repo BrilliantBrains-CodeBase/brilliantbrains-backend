@@ -16,46 +16,16 @@ const blogSchema = new mongoose.Schema(
     },
     summary: {
       type: String,
-      required: [true, "Summary is required"],
       trim: true,
+      default: "",
     },
     content: {
-      blocks: [
-        {
-          id: String,
-          type: {
-            type: String,
-            enum: [
-              "paragraph",
-              "heading",
-              "image",
-              "gallery",
-              "quote",
-              "code",
-              "table",
-              "checklist",
-              "list",
-              "divider",
-              "embed",
-              "video",
-              "cta",
-              "alert",
-              "raw",
-              "markdown",
-              "button",
-              "faq",
-              "tabs",
-            ],
-            required: true,
-          },
-          data: mongoose.Schema.Types.Mixed,
-          config: mongoose.Schema.Types.Mixed,
-        },
-      ],
+      type: String,
+      default: "",
     },
     featuredImage: {
       type: String,
-      required: [true, "Featured image is required"],
+      default: "",
     },
     author: {
       type: mongoose.Schema.Types.ObjectId,
@@ -65,7 +35,7 @@ const blogSchema = new mongoose.Schema(
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
-      required: true,
+      default: null,
     },
     tags: [
       {
@@ -78,12 +48,8 @@ const blogSchema = new mongoose.Schema(
       enum: ["draft", "published", "scheduled", "archived"],
       default: "draft",
     },
-    publishedAt: {
-      type: Date,
-    },
-    scheduledAt: {
-      type: Date,
-    },
+    publishedAt: Date,
+    scheduledAt: Date,
     readTime: {
       type: Number,
       default: 0,
@@ -104,30 +70,18 @@ const blogSchema = new mongoose.Schema(
       likes: { type: Number, default: 0 },
       shares: { type: Number, default: 0 },
     },
-    isFeatured: {
-      type: Boolean,
-      default: false,
-    },
-    isTrending: {
-      type: Boolean,
-      default: false,
-    },
-    revision: {
-      type: Number,
-      default: 1,
-    },
+    isFeatured: { type: Boolean, default: false },
+    isTrending: { type: Boolean, default: false },
+    revision: { type: Number, default: 1 },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// Indexes for performance
-blogSchema.index({ slug: 1 });
 blogSchema.index({ status: 1 });
 blogSchema.index({ category: 1 });
 blogSchema.index({ author: 1 });
 blogSchema.index({ "stats.views": -1 });
 blogSchema.index({ createdAt: -1 });
+blogSchema.index({ title: "text", summary: "text" });
 
 module.exports = mongoose.model("Blog", blogSchema);

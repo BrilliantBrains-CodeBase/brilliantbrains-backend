@@ -5,11 +5,11 @@ const {
   updateCategory, 
   deleteCategory 
 } = require("../controllers/category.controller");
-const { verifyJWT, authorize } = require("../middleware/auth.middleware");
+const { authenticate, authorize } = require("../middleware/auth.middleware");
 
 router.get("/", getAllCategories);
-router.post("/", verifyJWT, authorize("admin", "super_admin"), createCategory);
-router.patch("/:id", verifyJWT, authorize("admin", "super_admin"), updateCategory);
-router.delete("/:id", verifyJWT, authorize("admin", "super_admin"), deleteCategory);
+router.post("/", authenticate, authorize("admin", "super_admin"), createCategory);
+router.patch("/:id", authenticate, authorize("admin", "super_admin"), updateCategory);
+router.delete("/:id", authenticate, authorize("admin", "super_admin"), deleteCategory);
 
 module.exports = router;
