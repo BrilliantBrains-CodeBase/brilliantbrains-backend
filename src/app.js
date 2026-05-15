@@ -2,12 +2,16 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
+const path = require("path");
 
 const routes = require("./routes");
 const { csrfProtection } = require("./middleware/csrf.middleware");
 const { errorHandler } = require("./middleware/error.middleware");
 
 const app = express();
+
+// Trust nginx reverse proxy so req.protocol returns "https" in production
+app.set("trust proxy", 1);
 
 /* -------------------- CORS CONFIG (FIXED) -------------------- */
 
@@ -48,8 +52,8 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(cookieParser());
 app.use(morgan("dev"));
 
-// Serve static files from public folder
-app.use("/uploads", express.static("public/uploads"));
+// Serve static files — absolute path so PM2 CWD doesn't matter
+app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 
 /* -------------------- CSRF (AFTER CORS) -------------------- */
 
