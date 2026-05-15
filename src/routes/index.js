@@ -11,4 +11,10 @@ router.use("/blogs", require("./blog.routes"));
 router.use("/categories", require("./category.routes"));
 router.use("/tags", require("./tag.routes"));
 
+// ── Careers & Recruitment ─────────────────────────────────────────────────────
+router.use("/jobs", require("./job.routes"));
+router.use("/applications", require("./application.routes"));
+router.use("/career-settings", require("./careerSettings.routes"));
+router.use("/career-dashboard", require("./careerDashboard.routes"));
+
 module.exports = router;

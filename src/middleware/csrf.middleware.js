@@ -20,8 +20,12 @@ const csrfMiddleware = (req, res, next) => {
   // Skip preflight
   if (req.method === "OPTIONS") return next();
 
-  // 🚫 Skip CSRF for refresh token endpoint
+  // Skip refresh token endpoint
   if (req.path === "/api/auth/refresh") return next();
+
+  // Skip public job application submit — multipart/form-data from the careers page;
+  // CSRF token is not available on unauthenticated public forms
+  if (req.method === "POST" && req.path === "/api/applications") return next();
 
   return csrfProtection(req, res, next);
 };
