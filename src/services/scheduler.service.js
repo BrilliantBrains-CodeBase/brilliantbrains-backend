@@ -1,10 +1,5 @@
-const cron = require("node-cron");
 const Blog = require("../models/Blog.model");
 
-/**
- * Publish any blogs whose scheduledAt has passed.
- * Called both on server start (to catch any missed windows) and on every cron tick.
- */
 const publishDueBlogs = async () => {
   const now = new Date();
   const result = await Blog.updateMany(
@@ -17,17 +12,17 @@ const publishDueBlogs = async () => {
 };
 
 const startScheduler = () => {
-  // Catch up any blogs that were missed while the server was offline
+  // Catch up any blogs missed while the server was offline
   publishDueBlogs().catch((err) =>
     console.error("[Scheduler] Startup catchup error:", err.message)
   );
 
-  // Check every minute
-  cron.schedule("* * * * *", () => {
+  // Poll every 60 seconds — setInterval avoids node-cron's missed-tick warnings
+  setInterval(() => {
     publishDueBlogs().catch((err) =>
-      console.error("[Scheduler] Cron error:", err.message)
+      console.error("[Scheduler] Poll error:", err.message)
     );
-  });
+  }, 60_000);
 
   console.log("[Scheduler] Blog scheduler running — checks every minute");
 };

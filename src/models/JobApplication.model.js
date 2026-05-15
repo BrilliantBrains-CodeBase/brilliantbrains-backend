@@ -84,7 +84,7 @@ const applicationSchema = new mongoose.Schema(
 );
 
 // Auto-generate applicationId + set expiresAt on first save
-applicationSchema.pre("save", function (next) {
+applicationSchema.pre("save", async function () {
   if (!this.applicationId) {
     const ts = Math.floor(Date.now() / 1000);
     const rand = Math.floor(Math.random() * 9000) + 1000;
@@ -95,7 +95,6 @@ applicationSchema.pre("save", function (next) {
     d.setMonth(d.getMonth() + 6);
     this.expiresAt = d;
   }
-  next();
 });
 
 // Indexes for common query patterns

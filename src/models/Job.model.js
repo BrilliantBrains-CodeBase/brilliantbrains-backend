@@ -107,13 +107,12 @@ const jobSchema = new mongoose.Schema(
 );
 
 // Auto-generate jobId: JOB-{unix-seconds}-{4-digit-rand}
-jobSchema.pre("save", function (next) {
+jobSchema.pre("save", async function () {
   if (!this.jobId) {
     const ts = Math.floor(Date.now() / 1000);
     const rand = Math.floor(Math.random() * 9000) + 1000;
     this.jobId = `JOB-${ts}-${rand}`;
   }
-  next();
 });
 
 // Compound + text indexes for search performance
