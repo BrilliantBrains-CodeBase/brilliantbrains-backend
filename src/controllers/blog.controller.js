@@ -24,8 +24,16 @@ exports.getAllBlogs = async (req, res) => {
     sort = "-createdAt",
   } = req.query;
 
+  const isAdmin = req.user && ["admin", "super_admin"].includes(req.user.role);
+
   const query = {};
-  if (status) query.status = status;
+  // Non-admin callers only ever see published blogs.
+  // Admins may pass an explicit status filter (e.g. "draft", "scheduled").
+  if (isAdmin && status) {
+    query.status = status;
+  } else if (!isAdmin) {
+    query.status = "published";
+  }
   if (category) query.category = category;
   if (author) query.author = author;
   if (tag) query.tags = { $in: [tag] };
@@ -62,7 +70,7 @@ exports.getAllBlogs = async (req, res) => {
   );
 };
 
-// @desc  Get single blog by slug (public)
+// @desc  Get single blog by slug (public — published only)
 exports.getBlogBySlug = async (req, res) => {
   const blog = await Blog.findOne({ slug: req.params.slug, status: "published" })
     .populate("author", "name email profileImage bio socials")
@@ -91,9 +99,14 @@ exports.getBlogById = async (req, res) => {
 
 // @desc  Create blog
 exports.createBlog = async (req, res) => {
-  const { title, slug, summary, categoryId, status, content, featuredImage, tags, seo } = req.body;
+  const { title, slug, summary, categoryId, status, content, featuredImage, tags, seo, scheduledAt } = req.body;
 
   if (!title || !slug) throw new ApiError(400, "Title and slug are required");
+
+  if (status === "scheduled") {
+    if (!scheduledAt) throw new ApiError(400, "A scheduled date is required when scheduling a blog");
+    if (new Date(scheduledAt) <= new Date()) throw new ApiError(400, "Scheduled date must be in the future");
+  }
 
   const existing = await Blog.findOne({ slug });
   if (existing) throw new ApiError(400, "This slug is already in use");
@@ -111,6 +124,7 @@ exports.createBlog = async (req, res) => {
     seo: seo || {},
     readTime: calculateReadTime(content),
     publishedAt: status === "published" ? new Date() : null,
+    scheduledAt: status === "scheduled" ? new Date(scheduledAt) : null,
   });
 
   return res.status(201).json(new ApiResponse(201, blog, "Blog created successfully"));
@@ -122,6 +136,13 @@ exports.updateBlog = async (req, res) => {
   if (!blog) throw new ApiError(404, "Blog not found");
 
   const updates = { ...req.body };
+
+  // Validate scheduled status
+  if (updates.status === "scheduled") {
+    if (!updates.scheduledAt) throw new ApiError(400, "A scheduled date is required when scheduling a blog");
+    if (new Date(updates.scheduledAt) <= new Date()) throw new ApiError(400, "Scheduled date must be in the future");
+    updates.scheduledAt = new Date(updates.scheduledAt);
+  }
 
   if (updates.content !== undefined) {
     updates.readTime = calculateReadTime(updates.content);
@@ -140,7 +161,9 @@ exports.updateBlog = async (req, res) => {
   if (updates.status === "published" && !blog.publishedAt) {
     updates.publishedAt = new Date();
   }
-  if (updates.status === "draft" || updates.status === "archived") {
+
+  // Clear scheduledAt when moving out of scheduled state
+  if (updates.status === "draft" || updates.status === "archived" || updates.status === "published") {
     updates.scheduledAt = null;
   }
 

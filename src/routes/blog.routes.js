@@ -8,10 +8,10 @@ const {
   deleteBlog, 
   getRelatedBlogs 
 } = require("../controllers/blog.controller");
-const { authenticate, authorize } = require("../middleware/auth.middleware");
+const { authenticate, authorize, optionalAuthenticate } = require("../middleware/auth.middleware");
 
 // Public routes
-router.get("/", getAllBlogs);
+router.get("/", optionalAuthenticate, getAllBlogs);
 router.get("/slug/:slug", getBlogBySlug);
 router.get("/:id", authenticate, authorize("admin", "super_admin"), getBlogById);
 router.get("/:id/related", getRelatedBlogs);
