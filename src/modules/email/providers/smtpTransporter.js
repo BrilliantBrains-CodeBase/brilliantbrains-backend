@@ -7,6 +7,7 @@ function buildTransporter(provider) {
   const config = {
     host: provider.smtpHost,
     port: provider.smtpPort,
+    name: process.env.SMTP_EHLO_NAME || require("os").hostname(),
     auth: {
       user: provider.smtpUsername,
       pass: password,
