@@ -11,8 +11,11 @@ function buildTransporter(provider) {
       user: provider.smtpUsername,
       pass: password,
     },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000,
     tls: {
-      rejectUnauthorized: process.env.NODE_ENV === "production",
+      rejectUnauthorized: false,
     },
   };
 
