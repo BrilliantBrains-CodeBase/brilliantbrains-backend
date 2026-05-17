@@ -4,6 +4,7 @@ const JobApplication = require("../models/JobApplication.model");
 const Job = require("../models/Job.model");
 const ApiResponse = require("../utils/ApiResponse");
 const ApiError = require("../utils/ApiError");
+const { sendMail } = require("../modules/email/services/emailService");
 
 // @desc  Submit application (public)
 exports.submitApplication = async (req, res) => {
@@ -121,6 +122,26 @@ exports.submitApplication = async (req, res) => {
       },
     },
   });
+
+  const applicantName = `${firstName} ${lastName}`.trim();
+  const appliedAt = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+
+  // Confirmation to applicant
+  sendMail("job_application_received",
+    { applicantName, jobTitle: job.title, applicationId: application.applicationId, companyName: "Brilliant Brains" },
+    { to: [email.toLowerCase().trim()] }
+  ).catch(() => {});
+
+  // Internal alert to HR team (recipients set in the routing rule by admin)
+  sendMail("new_application_alert", {
+    applicantName,
+    applicantEmail: email.toLowerCase().trim(),
+    jobTitle: job.title,
+    applicationId: application.applicationId,
+    appliedAt,
+    experience: experience ? `${experience} year(s)` : "Not specified",
+    phone: phone || "Not provided",
+  }).catch(() => {});
 
   return res.status(201).json(
     new ApiResponse(
@@ -307,6 +328,31 @@ exports.updateStatus = async (req, res) => {
     await Job.findByIdAndUpdate(application.job, { $inc: { shortlistedCount: -1 } });
   }
 
+  // Send candidate notification based on new status — fire-and-forget
+  const applicantName = `${updated.firstName} ${updated.lastName}`.trim();
+  const jobDoc = await Job.findById(updated.job).select("title").lean();
+  const jobTitle = jobDoc?.title || "the position";
+
+  if (status === "shortlisted") {
+    sendMail("application_shortlisted",
+      { applicantName, jobTitle, companyName: "Brilliant Brains" },
+      { to: [updated.email] }
+    ).catch(() => {});
+  } else if (status === "rejected") {
+    sendMail("application_rejected",
+      { applicantName, jobTitle, companyName: "Brilliant Brains", rejectionReason: rejectionReason || "" },
+      { to: [updated.email] }
+    ).catch(() => {});
+  } else if (status === "interview_scheduled" && updated.interviewDate) {
+    const interviewDate = new Date(updated.interviewDate).toLocaleString("en-IN", {
+      dateStyle: "long", timeStyle: "short", timeZone: "Asia/Kolkata",
+    });
+    sendMail("interview_scheduled",
+      { applicantName, jobTitle, companyName: "Brilliant Brains", interviewDate, interviewNotes: interviewNotes || "Details will be shared separately." },
+      { to: [updated.email] }
+    ).catch(() => {});
+  }
+
   return res.status(200).json(new ApiResponse(200, updated, "Status updated"));
 };
 
@@ -336,16 +382,23 @@ exports.toggleShortlist = async (req, res) => {
     { new: true }
   );
 
-  await Job.findByIdAndUpdate(application.job, {
-    $inc: { shortlistedCount: newShortlisted ? 1 : -1 },
-  });
+  const [jobDoc] = await Promise.all([
+    Job.findByIdAndUpdate(application.job, {
+      $inc: { shortlistedCount: newShortlisted ? 1 : -1 },
+    }).select("title").lean(),
+  ]);
+
+  // Notify candidate when shortlisted (not when removed from shortlist)
+  if (newShortlisted) {
+    const applicantName = `${updated.firstName} ${updated.lastName}`.trim();
+    sendMail("application_shortlisted",
+      { applicantName, jobTitle: jobDoc?.title || "the position", companyName: "Brilliant Brains" },
+      { to: [updated.email] }
+    ).catch(() => {});
+  }
 
   return res.status(200).json(
-    new ApiResponse(
-      200,
-      updated,
-      newShortlisted ? "Candidate shortlisted" : "Removed from shortlist"
-    )
+    new ApiResponse(200, updated, newShortlisted ? "Candidate shortlisted" : "Removed from shortlist")
   );
 };
 

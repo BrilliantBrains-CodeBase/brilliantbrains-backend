@@ -50,6 +50,23 @@ const schema = new mongoose.Schema(
     lastActiveAt: {
       type: Date,
       default: Date.now
+    },
+
+    resetPasswordToken: {
+      type: String,
+      select: false
+    },
+
+    resetPasswordExpires: {
+      type: Date,
+      select: false
+    },
+
+    // Custom role reference — set for non-admin users who need dashboard access
+    customRoleId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Role",
+      default: null,
     }
   },
   {

@@ -17,4 +17,10 @@ router.use("/applications", require("./application.routes"));
 router.use("/career-settings", require("./careerSettings.routes"));
 router.use("/career-dashboard", require("./careerDashboard.routes"));
 
+// ── Email & SMTP ──────────────────────────────────────────────────────────────
+router.use("/email", require("../modules/email/routes"));
+
+// ── Roles & RBAC ──────────────────────────────────────────────────────────────
+router.use("/roles", require("./role.routes"));
+
 module.exports = router;

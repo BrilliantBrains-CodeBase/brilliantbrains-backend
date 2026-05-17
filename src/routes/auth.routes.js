@@ -70,6 +70,18 @@ router.patch(
   controller.updatePassword
 );
 
+// FORGOT PASSWORD — rate-limited to prevent abuse
+router.post(
+  "/forgot-password",
+  createRateLimiter({ max: 5 }),
+  controller.forgotPassword
+);
 
+// RESET PASSWORD
+router.post(
+  "/reset-password/:token",
+  createRateLimiter({ max: 10 }),
+  controller.resetPassword
+);
 
 module.exports = router;

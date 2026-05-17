@@ -2,6 +2,7 @@ const User = require("../models/User.model");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 const bcrypt = require("bcryptjs");
+const { sendMail } = require("../modules/email/services/emailService");
 
 /**
  * @desc    Get all users with pagination & filtering
@@ -44,7 +45,8 @@ exports.getAllUsers = async (req, res, next) => {
     const users = await User.find(query)
       .sort(sort)
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .populate("customRoleId", "name slug color");
 
     const total = await User.countDocuments(query);
 
@@ -71,7 +73,8 @@ exports.getAllUsers = async (req, res, next) => {
  */
 exports.getUserById = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.params.id)
+      .populate("customRoleId", "name slug color");
     if (!user) throw new ApiError(404, "User not found");
 
     return res.status(200).json(
@@ -89,7 +92,7 @@ exports.getUserById = async (req, res, next) => {
  */
 exports.createUser = async (req, res, next) => {
   try {
-    const { name, email, password, role, phoneNumber } = req.body;
+    const { name, email, password, role, phoneNumber, customRoleId } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) throw new ApiError(400, "User with this email already exists");
@@ -100,9 +103,21 @@ exports.createUser = async (req, res, next) => {
       name,
       email,
       password: hashedPassword,
-      role,
-      phoneNumber
+      role: role || "user",
+      phoneNumber,
+      customRoleId: customRoleId || null,
     });
+
+    // Welcome email — fire-and-forget
+    sendMail("welcome_user",
+      {
+        userName: name || email,
+        userEmail: email,
+        role: role || "user",
+        loginUrl: `${process.env.FRONTEND_URL}/admin/login`,
+      },
+      { to: [email] }
+    ).catch(() => {});
 
     return res.status(201).json(
       new ApiResponse(201, user, "User created successfully")
@@ -119,12 +134,9 @@ exports.createUser = async (req, res, next) => {
  */
 exports.updateUser = async (req, res, next) => {
   try {
-    const { name, email, role, isActive, phoneNumber } = req.body;
+    const { name, email, role, isActive, phoneNumber, customRoleId } = req.body;
     const userId = req.params.id;
 
-    // Prevent downgrading or editing other super admins if needed
-    // For now, allow simple update
-    
     const user = await User.findById(userId);
     if (!user) throw new ApiError(404, "User not found");
 
@@ -135,9 +147,9 @@ exports.updateUser = async (req, res, next) => {
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { $set: { name, email, role, isActive, phoneNumber } },
+      { $set: { name, email, role, isActive, phoneNumber, customRoleId: customRoleId || null } },
       { new: true, runValidators: true }
-    );
+    ).populate("customRoleId", "name slug color");
 
     return res.status(200).json(
       new ApiResponse(200, updatedUser, "User updated successfully")

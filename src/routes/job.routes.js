@@ -12,7 +12,7 @@ const {
 } = require("../controllers/job.controller");
 const {
   authenticate,
-  authorize,
+  requirePermission,
   optionalAuthenticate,
 } = require("../middleware/auth.middleware");
 
@@ -20,48 +20,13 @@ const {
 router.get("/", optionalAuthenticate, getAllJobs);
 router.get("/slug/:slug", getJobBySlug);
 
-// ── Admin ─────────────────────────────────────────────────────────────────────
-router.get(
-  "/:id",
-  authenticate,
-  authorize("admin", "super_admin"),
-  getJobById
-);
-router.post(
-  "/",
-  authenticate,
-  authorize("admin", "super_admin"),
-  createJob
-);
-router.patch(
-  "/:id",
-  authenticate,
-  authorize("admin", "super_admin"),
-  updateJob
-);
-router.post(
-  "/:id/publish",
-  authenticate,
-  authorize("admin", "super_admin"),
-  publishJob
-);
-router.post(
-  "/:id/archive",
-  authenticate,
-  authorize("admin", "super_admin"),
-  archiveJob
-);
-router.post(
-  "/:id/duplicate",
-  authenticate,
-  authorize("admin", "super_admin"),
-  duplicateJob
-);
-router.delete(
-  "/:id",
-  authenticate,
-  authorize("admin", "super_admin"),
-  deleteJob
-);
+// ── Protected ─────────────────────────────────────────────────────────────────
+router.get("/:id", authenticate, requirePermission("careers"), getJobById);
+router.post("/", authenticate, requirePermission("careers"), createJob);
+router.patch("/:id", authenticate, requirePermission("careers"), updateJob);
+router.post("/:id/publish", authenticate, requirePermission("careers"), publishJob);
+router.post("/:id/archive", authenticate, requirePermission("careers"), archiveJob);
+router.post("/:id/duplicate", authenticate, requirePermission("careers"), duplicateJob);
+router.delete("/:id", authenticate, requirePermission("careers"), deleteJob);
 
 module.exports = router;

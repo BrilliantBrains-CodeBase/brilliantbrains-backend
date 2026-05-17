@@ -8,17 +8,17 @@ const {
   deleteBlog, 
   getRelatedBlogs 
 } = require("../controllers/blog.controller");
-const { authenticate, authorize, optionalAuthenticate } = require("../middleware/auth.middleware");
+const { authenticate, requirePermission, optionalAuthenticate } = require("../middleware/auth.middleware");
 
 // Public routes
 router.get("/", optionalAuthenticate, getAllBlogs);
 router.get("/slug/:slug", getBlogBySlug);
-router.get("/:id", authenticate, authorize("admin", "super_admin"), getBlogById);
 router.get("/:id/related", getRelatedBlogs);
+router.get("/:id", authenticate, requirePermission("blogs"), getBlogById);
 
-// Protected routes (Admin only)
-router.post("/", authenticate, authorize("admin", "super_admin"), createBlog);
-router.patch("/:id", authenticate, authorize("admin", "super_admin"), updateBlog);
-router.delete("/:id", authenticate, authorize("admin", "super_admin"), deleteBlog);
+// Protected routes
+router.post("/", authenticate, requirePermission("blogs"), createBlog);
+router.patch("/:id", authenticate, requirePermission("blogs"), updateBlog);
+router.delete("/:id", authenticate, requirePermission("blogs"), deleteBlog);
 
 module.exports = router;

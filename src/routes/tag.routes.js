@@ -5,11 +5,11 @@ const {
   updateTag,
   deleteTag
 } = require("../controllers/tag.controller");
-const { authenticate, authorize } = require("../middleware/auth.middleware");
+const { authenticate, requirePermission } = require("../middleware/auth.middleware");
 
 router.get("/", getAllTags);
-router.post("/", authenticate, authorize("admin", "super_admin"), createTag);
-router.patch("/:id", authenticate, authorize("admin", "super_admin"), updateTag);
-router.delete("/:id", authenticate, authorize("admin", "super_admin"), deleteTag);
+router.post("/", authenticate, requirePermission("blogs"), createTag);
+router.patch("/:id", authenticate, requirePermission("blogs"), updateTag);
+router.delete("/:id", authenticate, requirePermission("blogs"), deleteTag);
 
 module.exports = router;
