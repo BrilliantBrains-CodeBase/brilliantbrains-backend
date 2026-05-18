@@ -3,7 +3,7 @@ const User = require("../models/User.model");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 
-const { PERMISSION_SLUGS } = require("../models/Role.model");
+const { PERMISSION_SLUGS, PERMISSION_DEFINITIONS } = require("../models/Role.model");
 
 /**
  * @desc    Get all roles
@@ -37,7 +37,7 @@ exports.getAllRoles = async (req, res, next) => {
 exports.getPermissions = async (req, res, next) => {
   try {
     return res.json(
-      new ApiResponse(200, PERMISSION_SLUGS, "Permission slugs fetched")
+      new ApiResponse(200, PERMISSION_DEFINITIONS, "Permission definitions fetched")
     );
   } catch (err) {
     next(err);

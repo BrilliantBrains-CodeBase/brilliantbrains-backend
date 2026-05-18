@@ -1,15 +1,20 @@
 const mongoose = require("mongoose");
 
-const PERMISSION_SLUGS = [
-  "dashboard",
-  "blogs",
-  "careers",
-  "media",
-  "users",
-  "settings",
-  "testimonials",
-  "crm",
+// Single source of truth for all permission definitions.
+// Add a new entry here when a new module is built — it appears in the
+// Roles UI automatically without any other changes.
+const PERMISSION_DEFINITIONS = [
+  { slug: "dashboard",    label: "Dashboard",       description: "View the main analytics dashboard" },
+  { slug: "blogs",        label: "Blogs",            description: "Manage blog posts, categories & tags" },
+  { slug: "careers",      label: "Careers",          description: "Manage jobs, applicants & interviews" },
+  { slug: "media",        label: "Media Library",    description: "Upload and manage media files" },
+  { slug: "users",        label: "User Management",  description: "View and manage system users" },
+  { slug: "settings",     label: "Settings",         description: "Configure general & email settings" },
+  { slug: "testimonials", label: "Testimonials",     description: "Manage client testimonials" },
+  { slug: "crm",          label: "CRM",              description: "Lead management and conversion tracking" },
 ];
+
+const PERMISSION_SLUGS = PERMISSION_DEFINITIONS.map((p) => p.slug);
 
 const schema = new mongoose.Schema(
   {
@@ -62,3 +67,4 @@ const schema = new mongoose.Schema(
 
 module.exports = mongoose.model("Role", schema);
 module.exports.PERMISSION_SLUGS = PERMISSION_SLUGS;
+module.exports.PERMISSION_DEFINITIONS = PERMISSION_DEFINITIONS;
