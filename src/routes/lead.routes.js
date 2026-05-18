@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const multer = require("multer");
 const {
   submitLead,
   getAllLeads,
@@ -18,12 +19,22 @@ const {
   getAnalytics,
   getTrash,
   exportLeads,
+  importLeads,
   bulkDelete,
   bulkRestore,
   bulkAssign,
   bulkStatusChange,
   getAssignableUsers,
 } = require("../controllers/lead.controller");
+
+const csvUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok = file.mimetype === "text/csv" || file.originalname.toLowerCase().endsWith(".csv");
+    cb(ok ? null : new Error("Only .csv files are accepted"), ok);
+  },
+}).single("csv");
 
 const { authenticate, requirePermission } = require("../middleware/auth.middleware");
 const { validate } = require("../middleware/validate.middleware");
@@ -62,6 +73,7 @@ router.post("/bulk/status",  ...auth, validate(bulkStatusSchema), bulkStatusChan
 router.get("/stats",            ...auth, getStats);
 router.get("/analytics",        ...auth, getAnalytics);
 router.get("/export",           ...auth, exportLeads);
+router.post("/import",          ...auth, csvUpload, importLeads);
 router.get("/trash",            ...auth, getTrash);
 router.get("/assignable-users", ...auth, getAssignableUsers);
 

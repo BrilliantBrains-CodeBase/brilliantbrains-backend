@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const Lead = require("../models/Lead.model");
 const LeadActivity = require("../models/LeadActivity.model");
 const Role = require("../models/Role.model");
@@ -5,6 +6,35 @@ const User = require("../models/User.model");
 const ApiResponse = require("../utils/ApiResponse");
 const ApiError = require("../utils/ApiError");
 const { sendMail } = require("../modules/email/services/emailService");
+
+// ── CSV parser (handles quoted fields with commas/newlines inside) ─────────────
+function parseCSVLines(text) {
+  const lines = [];
+  let row = [];
+  let cell = "";
+  let inQuote = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    const next = text[i + 1];
+    if (c === '"') {
+      if (inQuote && next === '"') { cell += '"'; i++; }
+      else inQuote = !inQuote;
+    } else if (c === ',' && !inQuote) {
+      row.push(cell.trim()); cell = "";
+    } else if (c === '\n' && !inQuote) {
+      row.push(cell.trim());
+      if (row.some(v => v)) lines.push(row);
+      row = []; cell = "";
+    } else if (c === '\r' && !inQuote) {
+      // skip CR
+    } else {
+      cell += c;
+    }
+  }
+  if (cell || row.length) { row.push(cell.trim()); if (row.some(v => v)) lines.push(row); }
+  return lines;
+}
 
 // ── Internal helpers ───────────────────────────────────────────────────────────
 
@@ -628,11 +658,14 @@ exports.getTrash = async (req, res) => {
 
 // ── Admin: Export leads as CSV ────────────────────────────────────────────────
 exports.exportLeads = async (req, res) => {
-  const { status, source, dateFrom, dateTo } = req.query;
+  const { status, source, priority, assignedTo, dateFrom, dateTo } = req.query;
   const filter = getAccessFilter(req.user);
 
   if (status) filter.status = status;
   if (source) filter.source = source;
+  if (priority) filter.priority = priority;
+  if (assignedTo === "unassigned") filter.assignedTo = null;
+  else if (assignedTo) filter.assignedTo = assignedTo;
   if (dateFrom || dateTo) {
     filter.createdAt = {};
     if (dateFrom) filter.createdAt.$gte = new Date(dateFrom);
@@ -672,6 +705,93 @@ exports.exportLeads = async (req, res) => {
   res.setHeader("Content-Type", "text/csv");
   res.setHeader("Content-Disposition", `attachment; filename="leads-${Date.now()}.csv"`);
   return res.send(csv);
+};
+
+// ── Admin: Import leads from CSV ──────────────────────────────────────────────
+exports.importLeads = async (req, res) => {
+  if (!req.file) throw new ApiError(400, "No CSV file uploaded");
+
+  const lines = parseCSVLines(req.file.buffer.toString("utf8"));
+  if (lines.length < 2) throw new ApiError(400, "CSV must have a header row and at least one data row");
+
+  const [headerRow, ...dataRows] = lines;
+
+  // Normalise header → model field name
+  const HEADER_MAP = {
+    "name": "fullName", "full name": "fullName", "fullname": "fullName",
+    "email": "email",
+    "phone": "phoneNumber", "phone number": "phoneNumber", "phonenumber": "phoneNumber",
+    "company": "companyName", "company name": "companyName", "companyname": "companyName",
+    "status": "status", "priority": "priority", "source": "source",
+    "service": "serviceInterest", "service interest": "serviceInterest", "serviceinterest": "serviceInterest",
+    "budget": "budgetRange", "budget range": "budgetRange", "budgetrange": "budgetRange",
+    "message": "message",
+    "notes": "internalNotes", "internal notes": "internalNotes", "internalnotes": "internalNotes",
+    "tags": "tags", "website": "website",
+  };
+
+  const fieldIdx = {};
+  headerRow.forEach((h, i) => {
+    const mapped = HEADER_MAP[h.toLowerCase().replace(/\s+/g, " ").trim()];
+    if (mapped) fieldIdx[mapped] = i;
+  });
+
+  if (!("fullName" in fieldIdx)) throw new ApiError(400, "CSV must have a 'Name' or 'Full Name' column");
+
+  const VALID_SOURCES   = ["website","referral","social_media","email_campaign","phone","event","partner","linkedin","other"];
+  const VALID_STATUSES  = ["new","valid","invalid","converted","lost","archived"];
+  const VALID_PRIORITIES= ["low","medium","high","urgent"];
+  const VALID_BUDGETS   = ["under_10k","10k_50k","50k_100k","100k_500k","above_500k","undisclosed"];
+
+  const toCreate = [];
+  const errors = [];
+
+  dataRows.forEach((row, idx) => {
+    const get = (f) => (fieldIdx[f] !== undefined ? row[fieldIdx[f]] || "" : "");
+    const fullName = get("fullName").trim();
+    if (!fullName) { errors.push({ row: idx + 2, error: "Missing full name" }); return; }
+
+    const source   = get("source").toLowerCase().replace(/\s+/g, "_");
+    const status   = get("status").toLowerCase();
+    const priority = get("priority").toLowerCase();
+    const budget   = get("budgetRange").toLowerCase().replace(/\s+/g, "_");
+    const tagsRaw  = get("tags");
+
+    toCreate.push({
+      uuid: crypto.randomUUID(),
+      fullName,
+      email: get("email").toLowerCase(),
+      phoneNumber: get("phoneNumber"),
+      companyName: get("companyName"),
+      website: get("website"),
+      message: get("message"),
+      serviceInterest: get("serviceInterest"),
+      internalNotes: get("internalNotes"),
+      source:     VALID_SOURCES.includes(source)    ? source    : "other",
+      status:     VALID_STATUSES.includes(status)   ? status    : "new",
+      priority:   VALID_PRIORITIES.includes(priority)? priority  : "medium",
+      budgetRange:VALID_BUDGETS.includes(budget)    ? budget    : "undisclosed",
+      tags: tagsRaw ? tagsRaw.split(",").map(t => t.trim()).filter(Boolean) : [],
+      createdBy: req.user._id,
+    });
+  });
+
+  let created = 0;
+  if (toCreate.length > 0) {
+    const inserted = await Lead.insertMany(toCreate, { ordered: false });
+    created = inserted.length;
+    await LeadActivity.insertMany(inserted.map(l => ({
+      leadId: l._id,
+      activityType: "created",
+      activityMessage: `Lead imported via CSV by ${req.user.name}`,
+      createdBy: req.user._id,
+    })));
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, { created, failed: errors.length, errors },
+      `Imported ${created} lead(s) successfully`)
+  );
 };
 
 // ── Bulk: Delete (soft) ────────────────────────────────────────────────────────
