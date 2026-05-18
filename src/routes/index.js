@@ -23,4 +23,7 @@ router.use("/email", require("../modules/email/routes"));
 // ── Roles & RBAC ──────────────────────────────────────────────────────────────
 router.use("/roles", require("./role.routes"));
 
+// ── Testimonials ───────────────────────────────────────────────────────────────
+router.use("/testimonials", require("./testimonial.routes"));
+
 module.exports = router;

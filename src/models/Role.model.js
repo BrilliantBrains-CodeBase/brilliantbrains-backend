@@ -7,6 +7,7 @@ const PERMISSION_SLUGS = [
   "media",
   "users",
   "settings",
+  "testimonials",
 ];
 
 const schema = new mongoose.Schema(
