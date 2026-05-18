@@ -74,15 +74,4 @@ const schema = new mongoose.Schema(
   }
 );
 
-/**
- * 🔒 Enforce ONLY ONE SUPER ADMIN at DB level
- */
-schema.index(
-  { role: 1 },
-  {
-    unique: true,
-    partialFilterExpression: { role: ROLES.SUPER_ADMIN }
-  }
-);
-
 module.exports = mongoose.model("User", schema);
