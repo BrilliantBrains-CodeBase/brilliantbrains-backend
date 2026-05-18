@@ -328,7 +328,161 @@ const TEMPLATES = [
     },
   },
 
-  // 9. Welcome User (to new admin user)
+  // 9. Lead Acknowledgement (to lead submitter)
+  {
+    rule: {
+      eventType: "lead.acknowledgement",
+      label: "Lead Acknowledgement (to Submitter)",
+      description: "Confirmation email sent directly to the person who submitted the contact/lead form.",
+      recipients: [],
+      recipientMode: "dynamic",
+      isActive: true,
+    },
+    template: {
+      eventType: "lead.acknowledgement",
+      name: "Lead Acknowledgement",
+      subject: "Thanks for reaching out — we'll be in touch soon!",
+      variables: ["leadName", "serviceInterest", "companyName"],
+      previewData: { leadName: "Arjun Sharma", serviceInterest: "E-commerce Website Development", companyName: "Brilliant Brains" },
+      htmlBody: wrap(
+        "We've received your message and will get back to you shortly.",
+        `${h2("Thanks for reaching out! 👋")}
+        ${p("Hi <strong>{{leadName}}</strong>,")}
+        ${p("We've received your enquiry and our team will review it shortly. Here's a quick summary of what you shared with us:")}
+        <div style="background:#fff8f5;border-left:4px solid #FE611C;border-radius:0 10px 10px 0;padding:16px 20px;margin:24px 0;">
+          <p style="color:#FE611C;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 4px;">Service Interest</p>
+          <p style="color:#111;font-size:17px;font-weight:700;margin:0;">{{serviceInterest}}</p>
+        </div>
+        ${p("Our team typically responds within <strong>1 business day</strong>. We look forward to understanding your project better and exploring how we can work together.")}
+        ${p("In the meantime, feel free to explore our work at <strong>brilliantbrains.ai</strong>.")}`,
+      ),
+      textBody: "Hi {{leadName}},\n\nThanks for reaching out to {{companyName}}! We've received your enquiry about {{serviceInterest}}.\n\nOur team will get back to you within 1 business day.\n\nBrilliant Brains — brilliantbrains.ai",
+      isActive: true,
+    },
+  },
+
+  // 10. Lead Internal Notification (to team)
+  {
+    rule: {
+      eventType: "lead.internal_notification",
+      label: "New Lead Alert (Internal Team Notification)",
+      description: "Sent to the sales/admin team whenever a new lead submits the website form. Configure recipients to your sales team's email(s).",
+      recipients: [],
+      recipientMode: "static",
+      isActive: true,
+    },
+    template: {
+      eventType: "lead.internal_notification",
+      name: "New Lead Internal Notification",
+      subject: "🔔 New lead: {{leadName}} — {{serviceInterest}}",
+      variables: ["leadName", "leadEmail", "leadPhone", "companyName", "serviceInterest", "budgetRange", "message", "source", "submittedAt"],
+      previewData: { leadName: "Arjun Sharma", leadEmail: "arjun@techcorp.com", leadPhone: "+91 98765 43210", companyName: "TechNova Solutions", serviceInterest: "E-commerce Website Development", budgetRange: "50k_100k", message: "We need a complete e-commerce overhaul with custom checkout.", source: "website", submittedAt: "18 May 2025, 10:30 AM" },
+      htmlBody: wrap(
+        "A new lead has submitted the contact form.",
+        `${h2("New Lead Submitted")}
+        ${p("A new lead just came in through the website. Here are the details:")}
+        <table cellpadding="0" cellspacing="0" style="margin:24px 0;width:100%;background:#f9f9f9;border:1px solid #eee;border-radius:10px;padding:16px 20px;">
+          <tr><td colspan="2" style="padding-bottom:12px;font-size:13px;font-weight:700;color:#FE611C;text-transform:uppercase;letter-spacing:0.5px;">Contact Details</td></tr>
+          ${info("Name", "{{leadName}}")}
+          ${info("Email", "{{leadEmail}}")}
+          ${info("Phone", "{{leadPhone}}")}
+          ${info("Company", "{{companyName}}")}
+          ${info("Service Interest", "{{serviceInterest}}")}
+          ${info("Budget Range", "{{budgetRange}}")}
+          ${info("Source", "{{source}}")}
+          ${info("Submitted At", "{{submittedAt}}")}
+        </table>
+        <div style="background:#fff8f5;border:1px solid #ffe0d0;border-radius:10px;padding:16px 20px;margin-bottom:24px;">
+          <p style="font-size:13px;font-weight:700;color:#FE611C;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;">Message</p>
+          <p style="color:#333;font-size:14px;line-height:1.6;margin:0;">{{message}}</p>
+        </div>
+        ${p("Log in to the CRM to review, assign, or take action on this lead.")}`,
+      ),
+      textBody: "New Lead Submitted\n\nName: {{leadName}}\nEmail: {{leadEmail}}\nPhone: {{leadPhone}}\nCompany: {{companyName}}\nService: {{serviceInterest}}\nBudget: {{budgetRange}}\nSource: {{source}}\nSubmitted: {{submittedAt}}\n\nMessage:\n{{message}}",
+      isActive: true,
+    },
+  },
+
+  // 11. Lead Assigned (to assignee)
+  {
+    rule: {
+      eventType: "lead.assigned",
+      label: "Lead Assigned (Assignee Notification)",
+      description: "Sent to the team member when a lead is assigned to them.",
+      recipients: [],
+      recipientMode: "dynamic",
+      isActive: true,
+    },
+    template: {
+      eventType: "lead.assigned",
+      name: "Lead Assigned Notification",
+      subject: "A new lead has been assigned to you — {{leadName}}",
+      variables: ["assigneeName", "leadName", "leadEmail", "companyName", "serviceInterest", "priority", "dashboardUrl"],
+      previewData: { assigneeName: "Priya Mehta", leadName: "Arjun Sharma", leadEmail: "arjun@techcorp.com", companyName: "TechNova Solutions", serviceInterest: "E-commerce Website Development", priority: "high", dashboardUrl: "https://brilliantbrains.ai/admin/dashboard/crm/leads" },
+      htmlBody: wrap(
+        "A new lead has been assigned to you.",
+        `${h2("New Lead Assigned to You")}
+        ${p("Hi <strong>{{assigneeName}}</strong>,")}
+        ${p("A lead has been assigned to you for follow-up. Here's a quick overview:")}
+        <table cellpadding="0" cellspacing="0" style="margin:24px 0;width:100%;background:#fff8f5;border:1px solid #ffe0d0;border-radius:10px;padding:16px 20px;">
+          ${info("Lead Name", "{{leadName}}")}
+          ${info("Email", "{{leadEmail}}")}
+          ${info("Company", "{{companyName}}")}
+          ${info("Service Interest", "{{serviceInterest}}")}
+          ${info("Priority", "{{priority}}")}
+        </table>
+        ${p("Please review the full lead details and reach out at the earliest opportunity.")}
+        <div style="text-align:center;">
+          ${btn("View Lead in CRM", "{{dashboardUrl}}")}
+        </div>`,
+      ),
+      textBody: "Hi {{assigneeName}},\n\nA new lead has been assigned to you.\n\nLead: {{leadName}}\nEmail: {{leadEmail}}\nCompany: {{companyName}}\nService: {{serviceInterest}}\nPriority: {{priority}}\n\nView it here: {{dashboardUrl}}",
+      isActive: true,
+    },
+  },
+
+  // 12. Lead Converted (to admins)
+  {
+    rule: {
+      eventType: "lead.converted",
+      label: "Lead Converted (Admin Summary)",
+      description: "Sent to admins when a lead is marked as converted. Configure recipients to your management team.",
+      recipients: [],
+      recipientMode: "static",
+      isActive: true,
+    },
+    template: {
+      eventType: "lead.converted",
+      name: "Lead Converted Notification",
+      subject: "🎉 Lead converted — {{leadName}} ({{companyName}})",
+      variables: ["leadName", "leadEmail", "companyName", "serviceInterest", "conversionValue", "conversionNotes", "convertedBy", "convertedAt"],
+      previewData: { leadName: "Arjun Sharma", leadEmail: "arjun@techcorp.com", companyName: "TechNova Solutions", serviceInterest: "E-commerce Website Development", conversionValue: "₹1,20,000", conversionNotes: "Signed 6-month retainer. Kick-off scheduled for next week.", convertedBy: "Priya Mehta", convertedAt: "18 May 2025, 2:45 PM" },
+      htmlBody: wrap(
+        "A lead has been successfully converted.",
+        `${h2("Lead Converted! 🎉")}
+        ${p("Great news — a lead has been successfully converted to a client. Here's the summary:")}
+        <table cellpadding="0" cellspacing="0" style="margin:24px 0;width:100%;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px 20px;">
+          <tr><td colspan="2" style="padding-bottom:12px;font-size:13px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:0.5px;">Conversion Summary</td></tr>
+          ${info("Client Name", "{{leadName}}")}
+          ${info("Email", "{{leadEmail}}")}
+          ${info("Company", "{{companyName}}")}
+          ${info("Service", "{{serviceInterest}}")}
+          ${info("Value", "{{conversionValue}}")}
+          ${info("Converted By", "{{convertedBy}}")}
+          ${info("Converted At", "{{convertedAt}}")}
+        </table>
+        <div style="background:#fff8f5;border:1px solid #ffe0d0;border-radius:10px;padding:16px 20px;margin-bottom:24px;">
+          <p style="font-size:13px;font-weight:700;color:#FE611C;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;">Notes</p>
+          <p style="color:#333;font-size:14px;line-height:1.6;margin:0;">{{conversionNotes}}</p>
+        </div>
+        ${p("Log in to the CRM to view the full conversion details and update the project record.")}`,
+      ),
+      textBody: "Lead Converted!\n\nClient: {{leadName}}\nEmail: {{leadEmail}}\nCompany: {{companyName}}\nService: {{serviceInterest}}\nValue: {{conversionValue}}\nConverted By: {{convertedBy}}\nConverted At: {{convertedAt}}\n\nNotes: {{conversionNotes}}",
+      isActive: true,
+    },
+  },
+
+  // 13. Welcome User (to new admin user)
   {
     rule: {
       eventType: "welcome_user",
