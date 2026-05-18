@@ -7,6 +7,7 @@
  * restart the server. That is the only change required.
  */
 
+const mongoose = require("mongoose");
 const Role = require("../models/Role.model");
 const { logger } = require("../utils/logger");
 
@@ -104,3 +105,19 @@ async function bootstrapRoles() {
 }
 
 module.exports = bootstrapRoles;
+
+// Allows running directly: node src/scripts/bootstrapRoles.js
+if (require.main === module) {
+  require("dotenv").config();
+  mongoose.connect(process.env.MONGO_URI)
+    .then(async () => {
+      console.log("✅ MongoDB connected");
+      await bootstrapRoles();
+      console.log("✅ Role bootstrap complete.");
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error("❌ Bootstrap failed:", err);
+      process.exit(1);
+    });
+}
