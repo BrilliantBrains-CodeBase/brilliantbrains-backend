@@ -26,4 +26,7 @@ router.use("/roles", require("./role.routes"));
 // ── Testimonials ───────────────────────────────────────────────────────────────
 router.use("/testimonials", require("./testimonial.routes"));
 
+// ── CRM / Lead Management ──────────────────────────────────────────────────────
+router.use("/leads", require("./lead.routes"));
+
 module.exports = router;

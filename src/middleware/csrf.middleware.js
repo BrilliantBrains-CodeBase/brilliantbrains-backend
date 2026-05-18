@@ -27,6 +27,9 @@ const csrfMiddleware = (req, res, next) => {
   // CSRF token is not available on unauthenticated public forms
   if (req.method === "POST" && req.path === "/api/applications") return next();
 
+  // Skip public CRM lead form — unauthenticated submission from the website contact form
+  if (req.method === "POST" && req.path === "/api/leads/submit") return next();
+
   return csrfProtection(req, res, next);
 };
 

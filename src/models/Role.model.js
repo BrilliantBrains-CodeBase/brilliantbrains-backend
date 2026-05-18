@@ -8,6 +8,7 @@ const PERMISSION_SLUGS = [
   "users",
   "settings",
   "testimonials",
+  "crm",
 ];
 
 const schema = new mongoose.Schema(
