@@ -14,20 +14,16 @@ async function getProviderById(id) {
   return SmtpProvider.findById(id).select("+smtpPassword");
 }
 
+// Atomic log update — uses findByIdAndUpdate so it never interferes with email delivery
+async function updateLog(logId, patch) {
+  if (!logId) return;
+  await EmailLog.findByIdAndUpdate(logId, { $set: patch, $inc: { attempts: 1 } }).catch(() => {});
+}
+
 /**
  * Core send function — resolves provider, template, recipients from routing rule.
- * Called by the queue worker or directly when queue is unavailable.
  */
 async function sendMailDirect({ logId, eventType, payload, overrides = {} }) {
-  const log = logId ? await EmailLog.findById(logId) : null;
-
-  const updateLog = async (patch) => {
-    if (log) {
-      Object.assign(log, patch);
-      await log.save();
-    }
-  };
-
   try {
     const rule = await EmailRoutingRule.findOne({ eventType, isActive: true })
       .populate("smtpProviderId")
@@ -59,7 +55,6 @@ async function sendMailDirect({ logId, eventType, payload, overrides = {} }) {
       }
     }
 
-    // Overrides are fallbacks — used when no template is configured
     subject = subject || overrides.subject || "";
     html = html || overrides.html || "";
     text = text || overrides.text || "";
@@ -97,17 +92,18 @@ async function sendMailDirect({ logId, eventType, payload, overrides = {} }) {
       text,
     });
 
-    await updateLog({
+    // Email sent — update log atomically (failure here must NOT affect sent status)
+    await updateLog(logId, {
       status: "sent",
       sentAt: new Date(),
       lastAttemptAt: new Date(),
-      attempts: (log?.attempts || 0) + 1,
       messageId: info.messageId || "",
       smtpResponse: info.response || "",
       smtpProviderId: provider._id,
       providerName: provider.providerName,
       templateId,
-      from: { name: fromName, email: fromEmail },
+      "from.name": fromName,
+      "from.email": fromEmail,
       to: toList,
       cc: ccList,
       bcc: bccList,
@@ -119,28 +115,19 @@ async function sendMailDirect({ logId, eventType, payload, overrides = {} }) {
   } catch (err) {
     logger.error(`[Email] failed — event=${eventType} error=${err.message}`);
 
-    await updateLog({
+    await updateLog(logId, {
       status: "failed",
       lastAttemptAt: new Date(),
-      attempts: (log?.attempts || 0) + 1,
       errorMessage: err.message,
     });
-
-    if (log?.smtpProviderId) {
-      invalidate(log.smtpProviderId.toString());
-    }
 
     throw err;
   }
 }
 
 /**
- * Public API — enqueues or sends directly based on queue availability.
- * Import and call this from any controller that needs to send email.
- *
- * Usage:
- *   const { sendMail } = require('../modules/email/services/emailService');
- *   await sendMail('career_application', { name: 'John', position: 'Developer' });
+ * Public API — creates a log entry and sends directly. No queue, no Redis.
+ * Fire-and-forget safe: errors are logged and the log is updated to "failed".
  */
 async function sendMail(eventType, payload = {}, overrides = {}) {
   const log = await EmailLog.create({
@@ -149,26 +136,15 @@ async function sendMail(eventType, payload = {}, overrides = {}) {
     payload,
   });
 
-  try {
-    const { enqueueEmail, getQueueStats } = require("../queues/emailQueue");
-    const { ready } = getQueueStats();
-
-    if (ready) {
-      await enqueueEmail({ logId: log._id.toString(), eventType, payload, overrides });
-    } else {
-      await sendMailDirect({ logId: log._id.toString(), eventType, payload, overrides });
-    }
-  } catch (err) {
-    // Safety net: sendMailDirect normally updates the log itself, but if it
-    // throws before reaching its own catch (e.g. DB lookup fails), ensure
-    // the log is never left stuck as "queued".
-    await EmailLog.findByIdAndUpdate(log._id, {
-      status: "failed",
-      errorMessage: err.message,
-      lastAttemptAt: new Date(),
-    }).catch(() => {});
-    throw err;
-  }
+  // Run async — caller doesn't need to await delivery
+  sendMailDirect({ logId: log._id.toString(), eventType, payload, overrides })
+    .catch((err) => {
+      logger.error(`[Email] unhandled error — event=${eventType}: ${err.message}`);
+      // Final safety net: if sendMailDirect fails before its own updateLog runs
+      EmailLog.findByIdAndUpdate(log._id, {
+        $set: { status: "failed", errorMessage: err.message, lastAttemptAt: new Date() },
+      }).catch(() => {});
+    });
 
   return log;
 }
