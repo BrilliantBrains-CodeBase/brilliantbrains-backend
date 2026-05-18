@@ -36,6 +36,11 @@ const emailRoutingRuleSchema = new mongoose.Schema(
       ref: "EmailTemplate",
       default: null,
     },
+    recipientMode: {
+      type: String,
+      enum: ["dynamic", "static"],
+      default: "static",
+    },
     isActive: { type: Boolean, default: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },

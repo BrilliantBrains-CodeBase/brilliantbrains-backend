@@ -71,6 +71,7 @@ const TEMPLATES = [
       label: "Login Detection Alert",
       description: "Sent to the admin whenever a successful login is detected on their account.",
       recipients: [],
+      recipientMode: "dynamic",
       isActive: true,
     },
     template: {
@@ -105,6 +106,7 @@ const TEMPLATES = [
       label: "Password Reset Link",
       description: "Sent when a user requests a password reset. Contains the secure reset link.",
       recipients: [],
+      recipientMode: "dynamic",
       isActive: true,
     },
     template: {
@@ -135,6 +137,7 @@ const TEMPLATES = [
       label: "Password Reset Confirmation",
       description: "Sent after a successful password reset to confirm the change.",
       recipients: [],
+      recipientMode: "dynamic",
       isActive: true,
     },
     template: {
@@ -165,6 +168,7 @@ const TEMPLATES = [
       label: "Job Application Received (Applicant Confirmation)",
       description: "Sent to the candidate immediately after they submit an application, confirming receipt.",
       recipients: [],
+      recipientMode: "dynamic",
       isActive: true,
     },
     template: {
@@ -198,6 +202,7 @@ const TEMPLATES = [
       label: "New Application Alert (HR Notification)",
       description: "Sent to the HR team when a new job application is submitted. Configure recipients to your HR team's email(s).",
       recipients: [],
+      recipientMode: "static",
       isActive: true,
     },
     template: {
@@ -233,6 +238,7 @@ const TEMPLATES = [
       label: "Application Shortlisted (Candidate Notification)",
       description: "Sent to the candidate when their application is shortlisted by HR.",
       recipients: [],
+      recipientMode: "dynamic",
       isActive: true,
     },
     template: {
@@ -264,6 +270,7 @@ const TEMPLATES = [
       label: "Application Rejected (Candidate Notification)",
       description: "Sent to the candidate when their application is marked as rejected.",
       recipients: [],
+      recipientMode: "dynamic",
       isActive: true,
     },
     template: {
@@ -293,6 +300,7 @@ const TEMPLATES = [
       label: "Interview Scheduled (Candidate Notification)",
       description: "Sent to the candidate when an interview is scheduled for them.",
       recipients: [],
+      recipientMode: "dynamic",
       isActive: true,
     },
     template: {
@@ -327,6 +335,7 @@ const TEMPLATES = [
       label: "Welcome New User",
       description: "Sent to a new user when their admin account is created.",
       recipients: [],
+      recipientMode: "dynamic",
       isActive: true,
     },
     template: {
@@ -368,6 +377,10 @@ async function seedEmailTemplates() {
       ruleDoc = await EmailRoutingRule.create(rule);
     } else {
       ruleDoc = existingRule;
+      // Migrate recipientMode if not set on existing records
+      if (!existingRule.recipientMode) {
+        await EmailRoutingRule.findByIdAndUpdate(existingRule._id, { recipientMode: rule.recipientMode });
+      }
     }
 
     // Upsert template (never overwrite existing one)

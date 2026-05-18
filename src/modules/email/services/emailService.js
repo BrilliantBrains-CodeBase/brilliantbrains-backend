@@ -75,7 +75,14 @@ async function sendMailDirect({ logId, eventType, payload, overrides = {} }) {
     const ccList = overrides.cc?.length ? overrides.cc : (rule?.cc || []);
     const bccList = overrides.bcc?.length ? overrides.bcc : (rule?.bcc || []);
 
-    if (!toList.length) throw new Error("No recipients specified for this event");
+    if (!toList.length) {
+      const isDynamic = rule?.recipientMode === "dynamic";
+      throw new Error(
+        isDynamic
+          ? `No recipient provided for dynamic event '${eventType}'`
+          : `No recipients configured for '${eventType}' — add recipients in Email > Routing Rules`
+      );
+    }
 
     const transporter = getTransporter(provider);
 
