@@ -146,7 +146,7 @@ const testimonialSchema = new mongoose.Schema(
 );
 
 // ── Pre-save: auto-generate UUID and unique slug ───────────────────────────────
-testimonialSchema.pre("save", async function (next) {
+testimonialSchema.pre("save", async function () {
   if (!this.uuid) {
     this.uuid = crypto.randomUUID();
   }
@@ -171,8 +171,6 @@ testimonialSchema.pre("save", async function (next) {
 
     this.slug = candidate;
   }
-
-  next();
 });
 
 // ── Indexes ────────────────────────────────────────────────────────────────────
