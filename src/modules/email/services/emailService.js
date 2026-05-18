@@ -150,11 +150,24 @@ async function sendMail(eventType, payload = {}, overrides = {}) {
   });
 
   try {
-    const { enqueueEmail } = require("../queues/emailQueue");
-    await enqueueEmail({ logId: log._id.toString(), eventType, payload, overrides });
-  } catch {
-    // Queue unavailable — fall back to direct send
-    await sendMailDirect({ logId: log._id, eventType, payload, overrides });
+    const { enqueueEmail, getQueueStats } = require("../queues/emailQueue");
+    const { ready } = getQueueStats();
+
+    if (ready) {
+      await enqueueEmail({ logId: log._id.toString(), eventType, payload, overrides });
+    } else {
+      await sendMailDirect({ logId: log._id.toString(), eventType, payload, overrides });
+    }
+  } catch (err) {
+    // Safety net: sendMailDirect normally updates the log itself, but if it
+    // throws before reaching its own catch (e.g. DB lookup fails), ensure
+    // the log is never left stuck as "queued".
+    await EmailLog.findByIdAndUpdate(log._id, {
+      status: "failed",
+      errorMessage: err.message,
+      lastAttemptAt: new Date(),
+    }).catch(() => {});
+    throw err;
   }
 
   return log;
