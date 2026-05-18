@@ -1,5 +1,7 @@
 const Lead = require("../models/Lead.model");
 const LeadActivity = require("../models/LeadActivity.model");
+const Role = require("../models/Role.model");
+const User = require("../models/User.model");
 const ApiResponse = require("../utils/ApiResponse");
 const ApiError = require("../utils/ApiError");
 const { sendMail } = require("../modules/email/services/emailService");
@@ -50,6 +52,28 @@ const POPULATE_BASIC = [
   { path: "validatedBy", select: "name email" },
   { path: "convertedBy", select: "name email" },
 ];
+
+// ── Assignable users: users who have CRM access ───────────────────────────────
+exports.getAssignableUsers = async (req, res) => {
+  // Find all custom roles that include the "crm" permission
+  const crmRoles = await Role.find({ permissions: "crm" }).select("_id name slug color").lean();
+  const crmRoleIds = crmRoles.map((r) => r._id);
+
+  // Return admin/super_admin users + users whose custom role has crm permission
+  const users = await User.find({
+    isActive: true,
+    $or: [
+      { role: { $in: ["admin", "super_admin"] } },
+      { role: "user", customRoleId: { $in: crmRoleIds } },
+    ],
+  })
+    .select("name email profileImage role customRoleId")
+    .populate("customRoleId", "name slug color")
+    .sort({ name: 1 })
+    .lean();
+
+  return res.json(new ApiResponse(200, users, "Assignable users fetched"));
+};
 
 // ── Public: Website lead form submission ───────────────────────────────────────
 exports.submitLead = async (req, res) => {

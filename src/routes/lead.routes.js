@@ -22,6 +22,7 @@ const {
   bulkRestore,
   bulkAssign,
   bulkStatusChange,
+  getAssignableUsers,
 } = require("../controllers/lead.controller");
 
 const { authenticate, requirePermission } = require("../middleware/auth.middleware");
@@ -58,10 +59,11 @@ router.post("/bulk/assign",  ...auth, validate(bulkAssignSchema), bulkAssign);
 router.post("/bulk/status",  ...auth, validate(bulkStatusSchema), bulkStatusChange);
 
 // ── Admin: Named paths (before /:id to prevent capture) ──────────────────────
-router.get("/stats",     ...auth, getStats);
-router.get("/analytics", ...auth, getAnalytics);
-router.get("/export",    ...auth, exportLeads);
-router.get("/trash",     ...auth, getTrash);
+router.get("/stats",            ...auth, getStats);
+router.get("/analytics",        ...auth, getAnalytics);
+router.get("/export",           ...auth, exportLeads);
+router.get("/trash",            ...auth, getTrash);
+router.get("/assignable-users", ...auth, getAssignableUsers);
 
 // ── Admin: Collection routes ──────────────────────────────────────────────────
 router.get("/",  ...auth, getAllLeads);
