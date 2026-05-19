@@ -482,7 +482,43 @@ const TEMPLATES = [
     },
   },
 
-  // 13. Welcome User (to new admin user)
+  // 13. Admin Password Reset (by Super Admin)
+  {
+    rule: {
+      eventType: "user.password_reset",
+      label: "Admin Password Reset",
+      description: "Sent to a user when their password is reset by a Super Admin.",
+      recipients: [],
+      recipientMode: "dynamic",
+      isActive: true,
+    },
+    template: {
+      eventType: "user.password_reset",
+      name: "Admin Password Reset",
+      subject: "Your Brilliant Brains password has been reset",
+      variables: ["userName", "userEmail", "newPassword", "loginUrl"],
+      previewData: { userName: "Rahul Sharma", userEmail: "rahul@brilliantbrains.ai", newPassword: "Xk9mP2qR8nYs4vAz", loginUrl: "https://brilliantbrains.ai/admin/login" },
+      htmlBody: wrap(
+        "Your admin account password has been reset.",
+        `${h2("Password Reset by Administrator")}
+        ${p("Hi <strong>{{userName}}</strong>,")}
+        ${p("Your Brilliant Brains admin account password has been reset by a system administrator. Your new temporary password is shown below:")}
+        <div style="background:#fff8f5;border:2px solid #FE611C;border-radius:10px;padding:24px;margin:24px 0;text-align:center;">
+          <p style="color:#888;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 12px;">Your New Temporary Password</p>
+          <p style="color:#111;font-size:24px;font-weight:700;font-family:monospace;letter-spacing:3px;margin:0;">{{newPassword}}</p>
+        </div>
+        ${p("Please log in and <strong>change your password immediately</strong> from your account settings.")}
+        <div style="text-align:center;">
+          ${btn("Log In to Admin Panel", "{{loginUrl}}")}
+        </div>
+        ${p("If you did not expect this change, contact your system administrator immediately.")}`,
+      ),
+      textBody: "Hi {{userName}},\n\nYour Brilliant Brains admin password has been reset by an administrator.\n\nYour new temporary password: {{newPassword}}\n\nPlease log in and change it immediately: {{loginUrl}}\n\nIf you did not expect this, contact your system administrator.",
+      isActive: true,
+    },
+  },
+
+  // 14. Welcome User (to new admin user)
   {
     rule: {
       eventType: "welcome_user",

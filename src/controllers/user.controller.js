@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const User = require("../models/User.model");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
@@ -178,6 +179,39 @@ exports.deleteUser = async (req, res, next) => {
 
     return res.status(200).json(
       new ApiResponse(200, null, "User deleted successfully")
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Reset a user's password (Super Admin only)
+ * @route   POST /api/users/:id/reset-password
+ * @access  Private (SuperAdmin)
+ */
+exports.resetUserPassword = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id).select("+password");
+    if (!user) throw new ApiError(404, "User not found");
+    if (user.role === "super_admin") throw new ApiError(403, "Cannot reset a Super Admin's password");
+
+    // 12 random bytes → 16-char URL-safe base64 string
+    const newPassword = crypto.randomBytes(12).toString("base64url").slice(0, 16);
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    await User.findByIdAndUpdate(req.params.id, { $set: { password: hashedPassword } });
+
+    // Notify the user — fire-and-forget
+    sendMail("user.password_reset", {
+      userName: user.name || user.email,
+      userEmail: user.email,
+      newPassword,
+      loginUrl: `${process.env.FRONTEND_URL}/admin/login`,
+    }, { to: [user.email] }).catch(() => {});
+
+    return res.status(200).json(
+      new ApiResponse(200, { newPassword }, "Password reset successfully")
     );
   } catch (error) {
     next(error);

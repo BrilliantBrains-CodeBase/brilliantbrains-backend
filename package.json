@@ -10,7 +10,8 @@
     "test": "jest",
     "seed:leads": "node src/scripts/seedLeads.js",
     "seed:roles": "node src/scripts/bootstrapRoles.js",
-    "seed:careers": "node src/scripts/seedCareers.js"
+    "seed:careers": "node src/scripts/seedCareers.js",
+    "seed:users": "node src/scripts/seedUsers.js"
   },
   "repository": {
     "type": "git",

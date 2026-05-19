@@ -11,5 +11,6 @@ router.get("/:id", requirePermission("users"), controller.getUserById);
 router.post("/", requirePermission("users"), csrfProtection, controller.createUser);
 router.patch("/:id", requirePermission("users"), csrfProtection, controller.updateUser);
 router.delete("/:id", authorize(ROLES.SUPER_ADMIN), csrfProtection, controller.deleteUser);
+router.post("/:id/reset-password", authorize(ROLES.SUPER_ADMIN), csrfProtection, controller.resetUserPassword);
 
 module.exports = router;
