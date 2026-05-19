@@ -128,17 +128,13 @@ const schema = new mongoose.Schema(
 );
 
 // ── Pre-validate: auto-derive category from provider ─────────────────────────
-// Runs before Mongoose validation so required: true on category is satisfied.
+// Must be pre-validate (not pre-save) so required: true on category passes
+// Mongoose validation. Async — no next() needed (Mongoose v7+ style).
 schema.pre("validate", async function () {
   if (this.provider && PROVIDER_CATEGORIES[this.provider]) {
     this.category = PROVIDER_CATEGORIES[this.provider];
   }
-});
-
-// ── Pre-save: generate UUID ───────────────────────────────────────────────────
-schema.pre("save", function (next) {
   if (!this.uuid) this.uuid = crypto.randomUUID();
-  next();
 });
 
 // ── Compound indexes ──────────────────────────────────────────────────────────
