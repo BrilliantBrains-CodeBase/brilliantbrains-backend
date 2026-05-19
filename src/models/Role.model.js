@@ -12,7 +12,8 @@ const PERMISSION_DEFINITIONS = [
   { slug: "settings",     label: "Settings",         description: "Configure general & email settings" },
   { slug: "testimonials", label: "Testimonials",     description: "Manage client testimonials" },
   { slug: "crm",          label: "CRM",              description: "Lead management and conversion tracking" },
-  { slug: "newsletter",   label: "Newsletter",       description: "Newsletter subscriber management and analytics" },
+  { slug: "newsletter",    label: "Newsletter",                description: "Newsletter subscriber management and analytics" },
+  { slug: "integrations", label: "Integrations & Marketing",  description: "Manage analytics, tracking pixels, ads, and custom scripts" },
 ];
 
 const PERMISSION_SLUGS = PERMISSION_DEFINITIONS.map((p) => p.slug);

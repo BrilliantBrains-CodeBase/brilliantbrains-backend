@@ -2,7 +2,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User.model");
 const ApiError = require("../utils/ApiError");
 
-const ADMIN_PERMISSIONS = ["dashboard", "blogs", "careers", "media", "users", "settings", "testimonials", "crm", "newsletter"];
+const ADMIN_PERMISSIONS = ["dashboard", "blogs", "careers", "media", "users", "settings", "testimonials", "crm", "newsletter", "integrations"];
 
 exports.authenticate = async (req, _res, next) => {
   try {

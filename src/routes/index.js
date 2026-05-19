@@ -32,4 +32,7 @@ router.use("/leads", require("./lead.routes"));
 // ── Newsletter Subscription Management ────────────────────────────────────────
 router.use("/newsletter", require("./newsletter.routes"));
 
+// ── Integrations & Marketing Management ───────────────────────────────────────
+router.use("/integrations", require("./integration.routes"));
+
 module.exports = router;

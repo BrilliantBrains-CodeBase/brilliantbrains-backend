@@ -12,7 +12,8 @@
     "seed:roles": "node src/scripts/bootstrapRoles.js",
     "seed:careers": "node src/scripts/seedCareers.js",
     "seed:users": "node src/scripts/seedUsers.js",
-    "seed:newsletter": "node src/scripts/seedNewsletterSubscribers.js"
+    "seed:newsletter": "node src/scripts/seedNewsletterSubscribers.js",
+    "seed:integrations": "node src/scripts/seedIntegrations.js"
   },
   "repository": {
     "type": "git",
