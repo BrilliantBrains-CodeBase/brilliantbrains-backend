@@ -56,7 +56,7 @@ const SEEDS = [
 ];
 
 async function seed() {
-  await mongoose.connect(process.env.MONGODB_URI);
+  await mongoose.connect(process.env.MONGO_URI);
   console.log("Connected to MongoDB");
 
   let inserted = 0;
