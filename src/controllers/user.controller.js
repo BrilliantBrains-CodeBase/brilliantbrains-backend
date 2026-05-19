@@ -194,7 +194,6 @@ exports.resetUserPassword = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id).select("+password");
     if (!user) throw new ApiError(404, "User not found");
-    if (user.role === "super_admin") throw new ApiError(403, "Cannot reset a Super Admin's password");
 
     // 12 random bytes → 16-char URL-safe base64 string
     const newPassword = crypto.randomBytes(12).toString("base64url").slice(0, 16);
