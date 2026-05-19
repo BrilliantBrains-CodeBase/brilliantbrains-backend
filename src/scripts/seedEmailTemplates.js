@@ -518,7 +518,90 @@ const TEMPLATES = [
     },
   },
 
-  // 14. Welcome User (to new admin user)
+  // 14. Newsletter Welcome Email
+  {
+    rule: {
+      eventType:     "newsletter.welcome",
+      label:         "Newsletter Welcome Email",
+      description:   "Sent to a new newsletter subscriber immediately after they subscribe.",
+      recipients:    [],
+      recipientMode: "dynamic",
+      isActive:      true,
+    },
+    template: {
+      eventType:   "newsletter.welcome",
+      name:        "Newsletter Welcome Email",
+      subject:     "Welcome to the Brilliant Brains Newsletter!",
+      variables:   ["name", "email", "unsubscribeLink"],
+      previewData: {
+        name:            "Rahul Sharma",
+        email:           "rahul@example.com",
+        unsubscribeLink: "https://brilliantbrains.ai/unsubscribe?token=abc123",
+      },
+      htmlBody: wrap(
+        "Thanks for subscribing to the Brilliant Brains Newsletter.",
+        `${h2("Welcome aboard! 🎉")}
+        ${p("Hi <strong>{{name}}</strong>,")}
+        ${p("Thank you for subscribing to the <strong>Brilliant Brains Newsletter</strong>. We're excited to have you with us!")}
+        ${p("Here's what you can expect from us:")}
+        <ul style="color:#555;font-size:15px;line-height:1.9;margin:16px 0;padding-left:20px;">
+          <li>Digital marketing insights and growth strategies</li>
+          <li>Case studies and success stories</li>
+          <li>Expert tips on e-commerce, influencer marketing &amp; more</li>
+          <li>Exclusive updates from our team</li>
+        </ul>
+        ${p("Stay tuned — your first edition is on its way soon.")}
+        <div style="background:#fff8f5;border-left:4px solid #FE611C;border-radius:0 10px 10px 0;padding:16px 20px;margin:24px 0;">
+          <p style="color:#FE611C;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 4px;">Did you know?</p>
+          <p style="color:#333;font-size:14px;line-height:1.6;margin:0;">Brilliant Brains has helped 100+ brands scale their digital presence across India and beyond.</p>
+        </div>
+        ${p("If you ever wish to unsubscribe, <a href=\"{{unsubscribeLink}}\" style=\"color:#FE611C;text-decoration:underline;\">click here</a>.")}`,
+      ),
+      textBody: "Hi {{name}},\n\nThank you for subscribing to the Brilliant Brains Newsletter!\n\nWe'll be sending you digital marketing insights, growth strategies, and exclusive updates.\n\nTo unsubscribe at any time, visit: {{unsubscribeLink}}",
+      isActive: true,
+    },
+  },
+
+  // 15. Newsletter Unsubscribe Confirmation
+  {
+    rule: {
+      eventType:     "newsletter.unsubscribe_confirm",
+      label:         "Newsletter Unsubscribe Confirmation",
+      description:   "Sent when a subscriber successfully unsubscribes from the newsletter.",
+      recipients:    [],
+      recipientMode: "dynamic",
+      isActive:      true,
+    },
+    template: {
+      eventType:   "newsletter.unsubscribe_confirm",
+      name:        "Newsletter Unsubscribe Confirmation",
+      subject:     "You've been unsubscribed from Brilliant Brains Newsletter",
+      variables:   ["name", "email", "resubscribeUrl"],
+      previewData: {
+        name:           "Rahul Sharma",
+        email:          "rahul@example.com",
+        resubscribeUrl: "https://brilliantbrains.ai",
+      },
+      htmlBody: wrap(
+        "You have been successfully unsubscribed.",
+        `${h2("You're unsubscribed.")}
+        ${p("Hi <strong>{{name}}</strong>,")}
+        ${p("You have been successfully removed from the Brilliant Brains Newsletter. We're sorry to see you go.")}
+        <div style="background:#f9f9f9;border:1px solid #eee;border-radius:10px;padding:16px 20px;margin:24px 0;">
+          <p style="color:#333;font-size:14px;font-weight:600;margin:0 0 4px;">Changed your mind?</p>
+          <p style="color:#888;font-size:13px;line-height:1.6;margin:0;">You can re-subscribe at any time by visiting our website.</p>
+        </div>
+        <div style="text-align:center;">
+          ${btn("Re-subscribe", "{{resubscribeUrl}}")}
+        </div>
+        ${p("Thank you for being part of our community.")}`,
+      ),
+      textBody: "Hi {{name}},\n\nYou have been successfully unsubscribed from the Brilliant Brains Newsletter.\n\nIf you change your mind, you can re-subscribe at: {{resubscribeUrl}}\n\nThank you for being part of our community.",
+      isActive: true,
+    },
+  },
+
+  // 16. Welcome User (to new admin user)
   {
     rule: {
       eventType: "welcome_user",
