@@ -127,8 +127,9 @@ const schema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// ── Pre-save: generate UUID + auto-derive category from provider ───────────────
-schema.pre("save", function (next) {
+// ── Pre-validate: generate UUID + auto-derive category from provider ─────────
+// Must run before validate (not pre-save) so required: true on category passes.
+schema.pre("validate", function (next) {
   if (!this.uuid) this.uuid = crypto.randomUUID();
   if (this.provider && PROVIDER_CATEGORIES[this.provider]) {
     this.category = PROVIDER_CATEGORIES[this.provider];
