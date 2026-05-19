@@ -155,9 +155,6 @@ async function seed() {
   await mongoose.connect(process.env.MONGO_URI);
   console.log("✅ MongoDB connected");
 
-  await NewsletterSubscriber.deleteMany({});
-  console.log("🗑️  Cleared existing newsletter subscribers");
-
   const docs = Array.from({ length: 50 }, (_, i) => buildSubscriber(i));
   const inserted = await NewsletterSubscriber.insertMany(docs, { timestamps: false });
   console.log(`✅ Inserted ${inserted.length} newsletter subscribers`);
