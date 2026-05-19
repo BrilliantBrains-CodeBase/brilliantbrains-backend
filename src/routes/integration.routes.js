@@ -1,7 +1,7 @@
 const { Router } = require("express");
 const { authenticate, requirePermission } = require("../middleware/auth.middleware");
 const { csrfProtection } = require("../middleware/csrf.middleware");
-const validate = require("../middleware/validate.middleware");
+const { validate } = require("../middleware/validate.middleware");
 const {
   createIntegrationSchema,
   updateIntegrationSchema,
