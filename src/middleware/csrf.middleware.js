@@ -30,6 +30,12 @@ const csrfMiddleware = (req, res, next) => {
   // Skip public CRM lead form — unauthenticated submission from the website contact form
   if (req.method === "POST" && req.path === "/api/leads/submit") return next();
 
+  // Skip public newsletter subscription form
+  if (req.method === "POST" && req.path === "/api/newsletter/subscribe") return next();
+
+  // Skip public newsletter unsubscribe endpoints (GET is read-only; POST processes unsubscribe)
+  if (/^\/api\/newsletter\/unsubscribe\//.test(req.path)) return next();
+
   return csrfProtection(req, res, next);
 };
 

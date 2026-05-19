@@ -29,4 +29,7 @@ router.use("/testimonials", require("./testimonial.routes"));
 // ── CRM / Lead Management ──────────────────────────────────────────────────────
 router.use("/leads", require("./lead.routes"));
 
+// ── Newsletter Subscription Management ────────────────────────────────────────
+router.use("/newsletter", require("./newsletter.routes"));
+
 module.exports = router;
