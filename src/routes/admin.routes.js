@@ -1,13 +1,7 @@
 const router = require("express").Router();
-const { authenticate } = require("../middleware/auth.middleware");
-const { authorize } = require("../middleware/role.middleware");
-const { ROLES } = require("../constants/roles");
+const { authenticate, requirePermission } = require("../middleware/auth.middleware");
+const { getDashboard } = require("../controllers/dashboard.controller");
 
-router.get(
-  "/dashboard",
-  authenticate,
-  authorize(ROLES.ADMIN),
-  (_, res) => res.json({ success: true })
-);
+router.get("/dashboard", authenticate, requirePermission("dashboard"), getDashboard);
 
 module.exports = router;
